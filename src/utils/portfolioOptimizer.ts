@@ -4,15 +4,38 @@ const RISK_FREE_RATE = 0.035; // 3.5% anual (tasa BCE aproximada)
 const NUM_SIMULATIONS = 40000;
 const MAX_FUNDS = 15;
 
-// Fetch historical monthly prices from Yahoo Finance (via Vite proxy)
+const YF_DIRECT = (ticker: string) =>
+  `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1mo&range=1y&includePrePost=false`;
+const YF_PROXY = (ticker: string) =>
+  `https://corsproxy.io/?url=${encodeURIComponent(YF_DIRECT(ticker))}`;
+
+// Fetch historical monthly prices from Yahoo Finance
 export async function fetchFundData(fund: Fund): Promise<FundData> {
-  const url = `/yf/v8/finance/chart/${fund.ticker}?interval=1mo&range=1y&includePrePost=false`;
+  let response: Response | null = null;
+
+  // Try direct first, fall back to CORS proxy
+  try {
+    response = await fetch(YF_DIRECT(fund.ticker), {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) response = null;
+  } catch {
+    response = null;
+  }
+
+  if (!response) {
+    try {
+      response = await fetch(YF_PROXY(fund.ticker), {
+        signal: AbortSignal.timeout(12000),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error de red';
+      return { fund, prices: [], monthlyReturns: [], annualizedReturn: 0, annualizedVolatility: 0, sharpeRatio: 0, error: message };
+    }
+  }
 
   try {
-    const response = await fetch(url, {
-      headers: { Accept: 'application/json' },
-    });
-
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const json = await response.json();
