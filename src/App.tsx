@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { Board } from './components/Board';
 import { DealModal } from './components/DealModal';
+import { InvestmentCalculator } from './components/InvestmentCalculator';
 import { SECTORS } from './data/stages';
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
   const [filterPriority, setFilterPriority] = useState('');
   const [filterSector, setFilterSector] = useState('');
   const [showDashboard, setShowDashboard] = useState(true);
+  const [activeTab, setActiveTab] = useState<'crm' | 'investment'>('crm');
 
   const activeSectors = useMemo(() => {
     return SECTORS.filter(s => deals.some(d => d.sector === s));
@@ -69,38 +71,72 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">
-      <Header
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        filterPriority={filterPriority}
-        onFilterChange={setFilterPriority}
-        filterSector={filterSector}
-        onSectorChange={setFilterSector}
-        onAddDeal={() => openAdd()}
-        sectors={activeSectors}
-        showDashboard={showDashboard}
-        onToggleDashboard={() => setShowDashboard(v => !v)}
-      />
+      {/* Tab navigation */}
+      <div className="bg-white border-b border-slate-200 flex items-center px-4 gap-1 flex-shrink-0">
+        <button
+          onClick={() => setActiveTab('crm')}
+          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === 'crm'
+              ? 'border-violet-600 text-violet-700'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          CRM M&A
+        </button>
+        <button
+          onClick={() => setActiveTab('investment')}
+          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === 'investment'
+              ? 'border-violet-600 text-violet-700'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          📈 Calculadora Inversión
+        </button>
+      </div>
 
-      {showDashboard && <Dashboard deals={deals} />}
+      {activeTab === 'crm' && (
+        <>
+          <Header
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            filterPriority={filterPriority}
+            onFilterChange={setFilterPriority}
+            filterSector={filterSector}
+            onSectorChange={setFilterSector}
+            onAddDeal={() => openAdd()}
+            sectors={activeSectors}
+            showDashboard={showDashboard}
+            onToggleDashboard={() => setShowDashboard(v => !v)}
+          />
 
-      <main className="flex-1 overflow-auto">
-        <Board
-          deals={filteredDeals}
-          onAddDeal={openAdd}
-          onEditDeal={openEdit}
-          onDeleteDeal={handleDelete}
-          onDragEnd={reorderDeals}
-        />
-      </main>
+          {showDashboard && <Dashboard deals={deals} />}
 
-      {modalOpen && (
-        <DealModal
-          deal={editingDeal}
-          initialStageId={initialStageId}
-          onSave={handleSave}
-          onClose={() => { setModalOpen(false); setEditingDeal(null); }}
-        />
+          <main className="flex-1 overflow-auto">
+            <Board
+              deals={filteredDeals}
+              onAddDeal={openAdd}
+              onEditDeal={openEdit}
+              onDeleteDeal={handleDelete}
+              onDragEnd={reorderDeals}
+            />
+          </main>
+
+          {modalOpen && (
+            <DealModal
+              deal={editingDeal}
+              initialStageId={initialStageId}
+              onSave={handleSave}
+              onClose={() => { setModalOpen(false); setEditingDeal(null); }}
+            />
+          )}
+        </>
+      )}
+
+      {activeTab === 'investment' && (
+        <main className="flex-1 overflow-auto bg-slate-100">
+          <InvestmentCalculator />
+        </main>
       )}
     </div>
   );
